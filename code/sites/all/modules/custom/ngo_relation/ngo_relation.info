@@ -1,0 +1,7 @@
+name = NGO Relation
+description = Relation betwee NGO to casue & Campaign
+core = 7.x
+package = NGO Custom
+version = "7.x-1.2"
+project = "ngo_relation"
+

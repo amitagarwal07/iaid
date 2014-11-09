@@ -1,0 +1,243 @@
+<?php
+function causes_menu() {
+  $items = array();
+  $items['causes'] = array( //this creates a URL that will call this form at "examples/form-example"
+    'title' => 'Causes List', //page title
+    'description' => 'List of Causes',
+    'access arguments' => array('access causes content'),
+    'type' => MENU_NORMAL_ITEM,
+    'page callback' => 'causes_list',  
+  );
+  return $items;
+}
+function causes_permission() {
+  return array(
+    'access causes content' => array(
+      'title' => t('Access causes list')
+    ),
+  );
+}
+function causes_list()
+{
+    $output = '';
+    return $output;
+    
+}
+function causes_block_info() {
+  $blocks['causes_list'] = array(
+    'info' => t('Cause list'),
+    'cache' => DRUPAL_NO_CACHE, //see link below for what this does.
+    //many other properties can be added here in this way.
+    //for all options, http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
+  );  
+  return $blocks;
+}
+function causes_block_view($delta) {
+  $block = array();
+  //delta is your block name. then just set it equal to your return functions.
+  switch ($delta) {
+    case 'causes_list':
+      //use helper functions to set the blocks. Cleaner.
+      $block = _ngo_cause_list();
+      break;
+  }
+  return $block;
+}
+function _ngo_cause_list() {
+  drupal_add_js(base_path() . libraries_get_path('flexslider') . '/jquery.flexslider.js');  
+  drupal_add_js(base_path() . drupal_get_path('module', 'causes') . '/js/custom.js');  
+  drupal_add_css(libraries_get_path('flexslider') . '/flexslider.css');
+  $content = '';  
+  $content .= '';
+  $content .= _cause_list();
+  //this $block['content'] uses the old way, just a regular string.
+  $block['content'] = $content;
+  $block['subject'] = 'title';
+  return $block;
+    
+}
+function _cause_list() {
+    $output = '';
+    $type = 'cause';
+ $output .= '<h1>Causes</h1>';
+ $nids = db_select('node', 'n')
+                ->fields('n', array('nid'))
+                ->extend('PagerDefault')
+                ->condition('status', 1)
+                ->condition('type', 'cause')
+                ->orderBy('title', 'ASC')
+                ->limit(10)
+                ->execute()
+                 ->fetchCol();   
+$nodes = node_load_multiple($nids);
+//print_r($nodes);
+$output .= '<div class="cause_lists">'; // Causes List Start
+$i = 1;
+foreach ($nodes as $node) {
+  $nid = $node->nid;
+  $title = $node->title;
+  $created = $node->created;
+  
+  $ngo_nids = db_select('field_data_field_cause', 'fdfc')
+                ->fields('fdfc', array('entity_id'))
+                ->extend('PagerDefault')
+                ->condition('bundle', 'ngo')
+                ->orderBy('entity_id', 'DESC')
+                ->limit(5)
+                ->execute()
+                 ->fetchCol();   
+$ngo_nodes = node_load_multiple($ngo_nids);
+  
+  
+  $body = '';
+  $cause_icon = '';
+  $cause_bg = '';
+  $cause_icon_url = '';
+  $cause_bg_url = '';
+  
+  $output .= '<div class="cause_list">'; // Cause List Start
+
+  if ($field_items = field_get_items('node', $node, 'body')) {
+    $body = $field_items[0]['value'];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_cause_icon')) {
+    $cause_icon = $field_items[0]['uri'];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_cause_background')) {
+    $cause_bg = $field_items[0]['uri'];
+  }
+  $cause_icon_url = image_style_url('thumbnail', $cause_icon);
+  $cause_bg_url = file_create_url($cause_bg);
+  
+  
+    $output .= '<div class="cause_title" '. (($cause_bg_url != '') ? 'style="background: url(\'' . $cause_bg_url . '\')' : '') . '">' . (($cause_icon_url != '') ? '<img width="40" src="' . t($cause_icon_url) . '" border="0" />' : '' ) . t($title) . '</div>';
+    
+    
+    $query = db_select('node', 'n');   
+          $query->fields('n', array('nid'))                  
+                ->condition('fc.bundle', 'campaign', '=')
+                ->condition('fc.field_cause_nid', $nid, '=')        
+                ->condition('n.status', 1, '=')
+                ->condition('n.type', 'campaign', '=')
+                ->range(0,10)  
+                ->orderRandom();
+          $query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
+          $campaign_nids =   $query->execute()->fetchCol();  
+                
+    $campaign_nodes = node_load_multiple($campaign_nids);
+$output .= '<div class="cause_full">'; // Cause Full Start
+$output .= '<div class="cause_left">'; // Left Start
+$output .= '<div class="campaign_lists">';
+$output .= '<div id="cause_image_slideshow_' . $i . '" class="flexslider">'
+        . '<ul class="slides" id="slides_' . $nid . '">';
+foreach ($campaign_nodes as $node) {
+  $campaign_nid = $node->nid;
+  $campaign_title = $node->title;
+  $created = $node->created;
+  $campaign_path = drupal_lookup_path('alias',"node/".$campaign_nid);
+  
+  
+  $cause_body = '';
+  $campaign_image = '';
+  $campaign_image_thumb_url = '';
+  $campaign_image_full_url = '';
+  
+  
+  if ($field_items = field_get_items('node', $node, 'body')) {
+    $cause_body = $field_items[0]['value'];
+  }
+
+  if ($field_items = field_get_items('node', $node, 'field_campaign_image')) {
+    $campaign_image = $field_items[0]['uri'];
+  }  
+  $campaign_image_thumb_url = image_style_url('thumbnail', $campaign_image);
+  $campaign_image_full_url = file_create_url($campaign_image);
+  
+  if (file_exists($campaign_image)) {
+    $output .= '<li><a title="<a href=\'' . $campaign_path . '\'>' . $campaign_title . '</a>" class="fancybox view-content cycle-link-' . $nid . '" data-fancybox-group="cause-gallery-page-field-' . $nid . '" href="' . $campaign_image_full_url . '"><img src="' . $campaign_image_full_url . '" border="0" /></a></li>';
+  }
+    
+}
+$output .= '</ul></div>';
+$output .= '</div>';
+
+    $output .= '<script>';
+
+  $output .= '
+  jQuery("#cause_image_slideshow_' . $i . '").flexslider({
+      animation: "slide",
+      slideshow: true, //Boolean: Animate slider automatically
+    slideshowSpeed: 2000, //Integer: Set the speed of the slideshow cycling, in milliseconds
+    animationSpeed: 1000, 
+  });';
+$output .= '</script>';
+$i++;
+$output .= '</div>'; // Left end
+$ngo_list = '';
+foreach ($ngo_nodes as $ngo_node) {
+  $ngo_nid = $ngo_node->nid;
+  $ngo_title = $ngo_node->title;
+  $ngo_path = drupal_lookup_path('alias',"node/".$ngo_nid);
+  
+  if ($ngo_list != '') {
+    $ngo_list .= ', <a href="' . $ngo_path . '">' . $ngo_title . '</a>';
+  }
+  else {
+      $ngo_list .= '<a href="' . $ngo_path . '">' . $ngo_title . '</a>';
+  }
+  
+}
+
+$output .= '<div class="cause_middle">'; // Middle Start.
+$output .= '<div class="cause_content">' . $body . '</div>';
+$output .= '<div class="cause_ngos"><b>Key NGOs: ' . $ngo_list . '</div>';
+$output .= '</div>'; // Middle End.
+
+
+
+
+$output .= '<div class="cause_right">'; // Right start.
+// Campaign list.
+
+    $cp_query = db_select('node', 'n');   
+          $cp_query->fields('n', array('nid'))                  
+                ->condition('fc.bundle', 'campaign', '=')
+                ->condition('fc.field_cause_nid', $nid, '=')        
+                ->condition('n.status', 1, '=')
+                ->condition('n.type', 'campaign', '=')
+                ->range(0,10)  
+                ->orderRandom();
+          $cp_query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
+          $cp_nids =   $cp_query->execute()->fetchCol();  
+                
+    $cp_nodes = node_load_multiple($cp_nids);
+foreach ($cp_nodes as $cp_node) {
+  $cp_nid = $cp_node->nid;
+  $cp_title = $cp_node->title;
+  $cp_path = drupal_lookup_path('alias', "node/" . $cp_nid);
+  
+  $output .= '<div class="cp_list">';
+  $output .= '<a href="' . $cp_path . '">' . $cp_title . '</a>';
+  $output .= '</div>';
+}
+
+$output .= '</div>'; // Right end.
+
+$output .= '<div class="clear"></div>';
+$output .= '</div>'; // Full end.
+
+$output .= '<div class="clear"></div>';
+
+
+
+
+$output .= '</div>'; // Cause list End.
+
+
+
+}
+
+ $output .= theme('pager');
+ $output .= '</div>';
+ return $output;
+}

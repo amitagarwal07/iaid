@@ -1,0 +1,23 @@
+/* 
+    Document   : style-custom
+    Created on : 24 Oct, 2014, 6:09:40 PM
+    Author     : Amit
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+.jcarousel-skin-tango .jcarousel-container-horizontal {width: auto;}
+.campaign_lists{margin: 10px 0;}
+.campaign_lists .flex-control-nav {width: auto;}
+.cause_list {border: 1px solid #999}
+.cause_title {border-bottom: 1px solid #999; height: 75px;}
+.cause_left {width: 30%; border-right: 1px solid #999; float: left;}
+.cause_middle {width: 48%; float: left; border-right: 1px solid #999;}
+.cause_right {width: 20%; float: left;}
+.clear {clear: both;}
+

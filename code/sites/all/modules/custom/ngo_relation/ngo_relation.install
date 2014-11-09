@@ -1,0 +1,41 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for Pathauto.
+ *
+ * @ingroup pathauto
+ */
+
+/**
+ * Implements hook_install().
+ */
+ function ngo_relation_install() {
+  // Create my tables.
+  drupal_install_schema('ngo_relation');
+}
+function ngo_relation_update_7100(&$sandbox) {
+$year_field = field_info_field('field_year_of_establishment'); //field_country is field machine name
+unset($year_field['settings']['allowed_values']);
+$year_field['settings']['allowed_values_function'] = '_ngo_relation_get_all_year';
+field_update_field($year_field);
+}
+/**
+ * Implements hook_uninstall().
+ */
+function ngo_relation_uninstall() {
+  // Drop my tables.
+  drupal_uninstall_schema('ngo_relation');
+}
+function ngo_relation_schema() {
+  $schema['custom_ngo_cause'] = array(    
+    'description' => 'Table for NGO and cause campaign',
+    'fields' => array(
+        'ncid'       => array('type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE),
+        'ngo_id'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE,'default' => 0),
+        'cause_id'       => array('type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE,'default' => 0),
+        ),
+        'primary key' => array('ncid')
+  );
+  return $schema;
+}
