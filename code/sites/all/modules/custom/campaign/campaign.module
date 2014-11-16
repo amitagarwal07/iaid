@@ -1,0 +1,150 @@
+<?php
+function campaign_block_info() {
+  $blocks['campaign_details'] = array(
+    'info' => t('Campaign details'),
+    'cache' => DRUPAL_NO_CACHE, //see link below for what this does.
+    //many other properties can be added here in this way.
+    //for all options, http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
+  );
+  return $blocks;
+}
+function campaign_block_view($delta) {
+  $block = array();
+  //delta is your block name. then just set it equal to your return functions.
+  switch ($delta) {
+    case 'campaign_details':
+      //use helper functions to set the blocks. Cleaner.
+      $block = _ngo_campaign_details();
+      break;  
+  }
+  return $block;
+}
+
+function _ngo_campaign_details() {
+  drupal_add_js(base_path() . libraries_get_path('flexslider') . '/jquery.flexslider.js');  
+  drupal_add_js(base_path() . drupal_get_path('module', 'campaign') . '/js/custom.js');  
+  drupal_add_css(libraries_get_path('flexslider') . '/flexslider.css');
+  $content = '';  
+  $content .= '';
+  $content .= _campaign_details();
+  //this $block['content'] uses the old way, just a regular string.
+  $block['content'] = $content;
+  $block['subject'] = 'title';
+  return $block;
+    
+}
+
+function _campaign_details() {
+    $output = '';
+    $node = _currentnode();
+$output .= '<div class="campaign_lists">'; // Campaign List Start
+  $nid = $node->nid;
+  $title = $node->title;
+  $created = $node->created;
+  
+//  $ngo_nids = db_select('field_data_field_campaign', 'fdfc')
+//                ->fields('fdfc', array('entity_id'))
+//                ->extend('PagerDefault')
+//                ->condition('bundle', 'ngo')
+//                ->orderBy('entity_id', 'DESC')
+//                ->limit(5)
+//                ->execute()
+//                 ->fetchCol();   
+//$ngo_nodes = node_load_multiple($ngo_nids);
+  
+  
+  $body = '';
+  $ngo_array = array();
+  $cause_array = array();
+  $campaign_icon = '';
+  $campaign_bg = '';
+  $campaign_icon_url = '';
+  $campaign_bg_url = '';
+  $campaign_image_arr = array();
+  $output .= '<div class="campaign_list">'; // Campaign List Start
+
+  if ($field_items = field_get_items('node', $node, 'field_description')) {
+    $body = $field_items[0]['value'];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_ngo')) {
+    $ngo_array = $field_items[0];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_campaign_image')) {
+    $campaign_image_arr = $field_items;
+  }  
+  if ($field_items = field_get_items('node', $node, 'field_cause')) {
+    $cause_array = $field_items;
+  }
+  
+  
+$output .= '<div class="campaign_title bigfont">' . t($title) . '</div>';        
+$output .= '<div class="campaign_full">'; // Campaign Full Start
+$output .= '<div class="campaign_full_middle">'; // Middle Start.
+$output .= '<div class="campaign_content">' . $body . '</div>';
+if (sizeof($ngo_array) > 0) {
+    $output .= '<div><strong>NGO: </strong><a href="' . drupal_lookup_path('alias',"node/".$ngo_array['node']->nid) . '">' . $ngo_array['node']->title . '</a></div>';
+}
+
+$output .= '<div class="campaign_lists">';
+if ($campaign_image_arr > 0) { // If image uploaded.
+    $output .= '<div class="bigfont">Picture Gallery</div>';
+    $output .= '<div id="campaign_image_slideshow" class="flexslider">'
+            . '<ul class="slides" id="slides_' . $nid . '">';
+    foreach ($campaign_image_arr as $campaign_images) {     
+      $campaign_image = $campaign_images['uri'];
+      $campaign_image_thumb_url = image_style_url('thumbnail', $campaign_image);
+      $campaign_image_full_url = file_create_url($campaign_image);
+      
+      if (file_exists($campaign_image)) {
+        $output .= '<li><a title="' . $title . '" class="fancybox view-content cycle-link-' . $nid . '" data-fancybox-group="cause-gallery-page-field-' . $nid . '" href="' . $campaign_image_full_url . '"><img src="' . $campaign_image_full_url . '" border="0" /></a></li>';
+      }
+
+    }
+    $output .= '</ul></div>';
+}
+$output .= '</div>'; // Campaign details end.
+
+$output .= '<script>';
+
+  $output .= '
+  jQuery("#campaign_image_slideshow").flexslider({
+      animation: "slide",
+      animationLoop: true,
+    itemWidth: 225,
+    itemMargin: 5 
+  });';
+$output .= '</script>';
+
+$output .= '</div>'; // Middle End.
+
+
+
+
+$output .= '<div class="campaign_right">'; // Right start.
+if (sizeof($cause_array) > 0) {
+        $output .= '<h1 class="bigfont">Causes</h1>';
+        foreach ($cause_array as $cause_list) {
+            $cause_node = $cause_list['node'];
+            if ($field_items = field_get_items('node', $cause_node, 'field_cause_icon')) {
+                 $cause_icon = $field_items[0]['uri'];
+            }
+            $cause_icon_url = image_style_url('thumbnail', $cause_icon);
+          $output .= '<div class="cp_list">';
+          $output .= '<a href="' . drupal_lookup_path('alias',"node/".$cause_node->nid) . '">' . (($cause_icon_url != '') ? '<img width="40" src="' . t($cause_icon_url) . '" border="0" />' : '' ) . t($cause_node->title) . '</a>';
+          $output .= '</div>';
+        }
+    }
+
+$output .= '</div>'; // Right end.
+
+//$output .= '<div class="clear"></div>';
+$output .= '</div>'; // Full end.
+
+$output .= '<div class="clear"></div>';
+
+
+$output .= '</div>'; // Campaign list End.
+
+ $output .= '</div>';
+ return $output;
+}

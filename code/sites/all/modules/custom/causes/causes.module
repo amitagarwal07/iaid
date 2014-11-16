@@ -29,7 +29,13 @@ function causes_block_info() {
     'cache' => DRUPAL_NO_CACHE, //see link below for what this does.
     //many other properties can be added here in this way.
     //for all options, http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
-  );  
+  );
+  $blocks['causes_details'] = array(
+    'info' => t('Cause details'),
+    'cache' => DRUPAL_NO_CACHE, //see link below for what this does.
+    //many other properties can be added here in this way.
+    //for all options, http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
+  );
   return $blocks;
 }
 function causes_block_view($delta) {
@@ -40,6 +46,10 @@ function causes_block_view($delta) {
       //use helper functions to set the blocks. Cleaner.
       $block = _ngo_cause_list();
       break;
+    case 'causes_details':
+      //use helper functions to set the blocks. Cleaner.
+      $block = _ngo_cause_details();
+      break;  
   }
   return $block;
 }
@@ -56,24 +66,25 @@ function _ngo_cause_list() {
   return $block;
     
 }
-function _cause_list() {
+function _ngo_cause_details() {
+  drupal_add_js(base_path() . libraries_get_path('flexslider') . '/jquery.flexslider.js');  
+  drupal_add_js(base_path() . drupal_get_path('module', 'causes') . '/js/custom.js');  
+  drupal_add_css(libraries_get_path('flexslider') . '/flexslider.css');
+  $content = '';  
+  $content .= '';
+  $content .= _cause_details();
+  //this $block['content'] uses the old way, just a regular string.
+  $block['content'] = $content;
+  $block['subject'] = 'title';
+  return $block;
+    
+}
+
+function _cause_details() {
     $output = '';
-    $type = 'cause';
- $output .= '<h1>Causes</h1>';
- $nids = db_select('node', 'n')
-                ->fields('n', array('nid'))
-                ->extend('PagerDefault')
-                ->condition('status', 1)
-                ->condition('type', 'cause')
-                ->orderBy('title', 'ASC')
-                ->limit(10)
-                ->execute()
-                 ->fetchCol();   
-$nodes = node_load_multiple($nids);
-//print_r($nodes);
+    $node = _currentnode();
 $output .= '<div class="cause_lists">'; // Causes List Start
 $i = 1;
-foreach ($nodes as $node) {
   $nid = $node->nid;
   $title = $node->title;
   $created = $node->created;
@@ -119,12 +130,237 @@ $ngo_nodes = node_load_multiple($ngo_nids);
                 ->condition('fc.field_cause_nid', $nid, '=')        
                 ->condition('n.status', 1, '=')
                 ->condition('n.type', 'campaign', '=')
-                ->range(0,10)  
+                ->range(0,20)  
                 ->orderRandom();
           $query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
           $campaign_nids =   $query->execute()->fetchCol();  
                 
     $campaign_nodes = node_load_multiple($campaign_nids);
+$output .= '<div class="cause_full">'; // Cause Full Start
+$output .= '<div class="cause_full_middle">'; // Middle Start.
+$output .= '<div class="cause_content">' . $body . '</div>';
+
+$output .= '<div class="campaign_lists">';
+$output .= '<div class="bigfont">Picture Gallery</div>';
+$output .= '<div id="cause_image_slideshow" class="flexslider">'
+        . '<ul class="slides" id="slides_' . $nid . '">';
+foreach ($campaign_nodes as $node) {
+  $campaign_nid = $node->nid;
+  $campaign_title = $node->title;
+  $created = $node->created;
+  $campaign_path = drupal_lookup_path('alias',"node/".$campaign_nid);
+  
+  
+  $cause_body = '';
+  $campaign_image = '';
+  $campaign_image_thumb_url = '';
+  $campaign_image_full_url = '';
+  
+  
+  if ($field_items = field_get_items('node', $node, 'body')) {
+    $cause_body = $field_items[0]['value'];
+  }
+
+  if ($field_items = field_get_items('node', $node, 'field_campaign_image')) {
+    $campaign_image = $field_items[0]['uri'];
+  }  
+  $campaign_image_thumb_url = image_style_url('thumbnail', $campaign_image);
+  $campaign_image_full_url = file_create_url($campaign_image);
+  
+  if (file_exists($campaign_image)) {
+    $output .= '<li><a title="<a href=\'' . $campaign_path . '\'>' . $campaign_title . '</a>" class="fancybox view-content cycle-link-' . $nid . '" data-fancybox-group="cause-gallery-page-field-' . $nid . '" href="' . $campaign_image_full_url . '"><img src="' . $campaign_image_full_url . '" border="0" /></a></li>';
+  }
+    
+}
+$output .= '</ul></div>';
+$output .= '</div>';
+
+    $output .= '<script>';
+
+  $output .= '
+  jQuery("#cause_image_slideshow").flexslider({
+      animation: "slide",
+      animationLoop: true,
+    itemWidth: 150,
+    itemMargin: 5 
+  });';
+$output .= '</script>';
+
+$output .= '</div>'; // Middle End.
+
+
+
+
+$output .= '<div class="cause_right">'; // Right start.
+// Campaign list.
+
+    $cp_query = db_select('node', 'n');   
+          $cp_query->fields('n', array('nid'))                  
+                ->condition('fc.bundle', 'campaign', '=')
+                ->condition('fc.field_cause_nid', $nid, '=')        
+                ->condition('n.status', 1, '=')
+                ->condition('n.type', 'campaign', '=')
+                ->range(0,10)  
+                ->orderRandom();
+          $cp_query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
+          $cp_nids =   $cp_query->execute()->fetchCol();  
+                
+    $cp_nodes = node_load_multiple($cp_nids);
+    if (sizeof($cp_nodes) > 0) {
+        $output .= '<h1 class="bigfont">Supporters</h1>';
+    }
+
+$output .= '</div>'; // Right end.
+
+//$output .= '<div class="clear"></div>';
+$output .= '</div>'; // Full end.
+
+$output .= '<div class="clear"></div>';
+
+
+$output .= '<div class="cause_full">'; // Cause Full Start
+$output .= '<div class="cause_full_middle">'; // Left Start
+$output .= '<div class="bigfont">Key NGOs</div>';
+foreach ($ngo_nodes as $ngo_node) {
+  $ngo_about = '';  
+  $ngo_nid = $ngo_node->nid;
+  $ngo_title = $ngo_node->title;
+  $ngo_path = drupal_lookup_path('alias',"node/".$ngo_nid);
+  $ngo_image = '';
+  $ngo_image_full_url = '';
+  if ($field_items = field_get_items('node', $ngo_node, 'field_about')) {
+    $ngo_about = $field_items[0]['value'];
+  }
+  
+  if ($field_items = field_get_items('node', $node, 'field_ngo_logo')) {
+    $ngo_image = $field_items[0]['uri'];
+  }
+  if ($ngo_image != '') {
+      $ngo_image_full_url = file_create_url($ngo_image);
+  }
+  
+  $output .= '<div class="ngo_inline">';
+  $output .= '<div class="ngo_title"><a href="' . $ngo_path . '">' . ($ngo_image_full_url != '' ? '<img width="60" src="'. $ngo_image_full_url .'" />' : '') . $ngo_title . '</a></div>';
+  $output .= '<div class="ngo_desc">' . $ngo_about . '</div>';
+  $output .= '</div>';
+  
+}
+
+$output .= '</div>'; // Middle End.
+
+$output .= '<div class="cause_right">'; // Right start.
+// Campaign list.
+
+    $cp_query = db_select('node', 'n');   
+          $cp_query->fields('n', array('nid'))                  
+                ->condition('fc.bundle', 'campaign', '=')
+                ->condition('fc.field_cause_nid', $nid, '=')        
+                ->condition('n.status', 1, '=')
+                ->condition('n.type', 'campaign', '=')
+                ->range(0,10)  
+                ->orderRandom();
+          $cp_query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
+          $cp_nids =   $cp_query->execute()->fetchCol();  
+                
+    $cp_nodes = node_load_multiple($cp_nids);
+    if (sizeof($cp_nodes) > 0) {
+        $output .= '<h1 class="bigfont">Campaigns</h1>';
+        foreach ($cp_nodes as $cp_node) {
+          $cp_nid = $cp_node->nid;
+          $cp_title = $cp_node->title;
+          $cp_path = drupal_lookup_path('alias', "node/" . $cp_nid);
+
+          $output .= '<div class="cp_list">';
+          $output .= '<a href="' . $cp_path . '">' . $cp_title . '</a>';
+          $output .= '</div>';
+        }
+    }
+
+$output .= '</div>'; // Right end.
+
+//$output .= '<div class="clear"></div>';
+$output .= '</div>'; // Full end.
+
+$output .= '<div class="clear"></div>';
+
+
+$output .= '</div>'; // Cause list End.
+
+ $output .= '</div>';
+ return $output;
+}
+
+function _cause_list() {
+    $output = '';
+    $type = 'cause';
+ $output .= '<h1>Causes</h1>';
+ $nids = db_select('node', 'n')
+                ->fields('n', array('nid'))
+                ->extend('PagerDefault')
+                ->condition('status', 1)
+                ->condition('type', 'cause')
+                ->orderBy('title', 'ASC')
+                ->limit(10)
+                ->execute()
+                 ->fetchCol();   
+$nodes = node_load_multiple($nids);
+//print_r($nodes);
+$output .= '<div class="cause_lists">'; // Causes List Start
+$i = 1;
+foreach ($nodes as $node) {
+  $nid = $node->nid;
+  $title = $node->title;
+  $created = $node->created;
+  // NGO LIST FOR CAUSE
+  $ngo_nids = db_select('field_data_field_cause', 'fdfc')
+                ->fields('fdfc', array('entity_id'))
+                ->extend('PagerDefault')
+                ->condition('bundle', 'ngo')
+                ->orderBy('entity_id', 'DESC')
+                ->limit(5)
+                ->execute()
+                ->fetchCol();   
+    $ngo_nodes = node_load_multiple($ngo_nids);
+  
+    
+        
+    $query = db_select('node', 'n');   
+          $query->fields('n', array('nid'))                  
+                ->condition('fc.bundle', 'campaign', '=')
+                ->condition('fc.field_cause_nid', $nid, '=')        
+                ->condition('n.status', 1, '=')
+                ->condition('n.type', 'campaign', '=')
+                ->range(0,10)  
+                ->orderRandom();
+          $query->join('field_data_field_cause', 'fc', 'n.nid = fc.entity_id');
+          $campaign_nids =   $query->execute()->fetchCol();                  
+    $campaign_nodes = node_load_multiple($campaign_nids);
+    
+  $body = '';
+  $cause_icon = '';
+  $cause_bg = '';
+  $cause_icon_url = '';
+  $cause_bg_url = '';
+  
+  $output .= '<div class="cause_list">'; // Cause List Start
+
+  $cause_path = drupal_lookup_path('alias',"node/".$nid);
+  if ($field_items = field_get_items('node', $node, 'body')) {
+    $body = $field_items[0]['value'];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_cause_icon')) {
+    $cause_icon = $field_items[0]['uri'];
+  }
+  if ($field_items = field_get_items('node', $node, 'field_cause_background')) {
+    $cause_bg = $field_items[0]['uri'];
+  }
+  $cause_icon_url = image_style_url('thumbnail', $cause_icon);
+  $cause_bg_url = file_create_url($cause_bg);
+  
+  
+    $output .= '<div class="cause_title" '. (($cause_bg_url != '') ? 'style="background: url(\'' . $cause_bg_url . '\')' : '') . '"><a href="' . $cause_path . '">' . (($cause_icon_url != '') ? '<img width="40" src="' . t($cause_icon_url) . '" border="0" />' : '' ) . t($title) . '</a></div>';
+    
+
 $output .= '<div class="cause_full">'; // Cause Full Start
 $output .= '<div class="cause_left">'; // Left Start
 $output .= '<div class="campaign_lists">';
@@ -211,25 +447,25 @@ $output .= '<div class="cause_right">'; // Right start.
           $cp_nids =   $cp_query->execute()->fetchCol();  
                 
     $cp_nodes = node_load_multiple($cp_nids);
-foreach ($cp_nodes as $cp_node) {
-  $cp_nid = $cp_node->nid;
-  $cp_title = $cp_node->title;
-  $cp_path = drupal_lookup_path('alias', "node/" . $cp_nid);
-  
-  $output .= '<div class="cp_list">';
-  $output .= '<a href="' . $cp_path . '">' . $cp_title . '</a>';
-  $output .= '</div>';
-}
+    if (sizeof($cp_nodes) > 0) {
+        $output .= '<h1 class="bigfont">Campaigns</h1>';
+        foreach ($cp_nodes as $cp_node) {
+          $cp_nid = $cp_node->nid;
+          $cp_title = $cp_node->title;
+          $cp_path = drupal_lookup_path('alias', "node/" . $cp_nid);
+
+          $output .= '<div class="cp_list">';
+          $output .= '<a href="' . $cp_path . '">' . $cp_title . '</a>';
+          $output .= '</div>';
+        }
+    }
 
 $output .= '</div>'; // Right end.
 
-$output .= '<div class="clear"></div>';
+//$output .= '<div class="clear"></div>';
 $output .= '</div>'; // Full end.
 
 $output .= '<div class="clear"></div>';
-
-
-
 
 $output .= '</div>'; // Cause list End.
 
@@ -240,4 +476,15 @@ $output .= '</div>'; // Cause list End.
  $output .= theme('pager');
  $output .= '</div>';
  return $output;
+}
+
+function _currentnode_nid(){
+    if (arg(0)=='node' && is_numeric(arg(1)))
+        return arg(1);
+    else
+        return 0;
+}
+
+function _currentnode(){
+    return node_load(_currentnode_nid());
 }

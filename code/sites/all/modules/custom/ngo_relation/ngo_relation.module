@@ -168,12 +168,27 @@ function ngo_relation_block_view($delta) {
 function _ngo_people_cause_campaign_list() {
   $content = '';  
   $content .= '';
+  $content .= '<div style="float: left; width: 30%; margin: 0 5px;">';
+  $content .= '<div class="bigfont">People</div>';
+  $content .= _ngo_block_user_list();
+  $content .= '</div>';
+  $content .= '<div style="float: left; width: 30%; margin: 0 5px;">';
+  $content .= '<div class="bigfont">Causes</div>';
   $content .= _ngo_block_cause_list();
+  $content .= '</div>';
+  $content .= '<div style="float: left; width: 30%; margin: 0 5px;">';
+  $content .= '<div class="bigfont">Campaigns</div>';
+  $content .= _ngo_block_campaign_list();
+  $content .= '</div>';
+  $content .= '<div class="clear">&nbsp;</div>';
   //this $block['content'] uses the old way, just a regular string.
   $block['content'] = $content;
   $block['subject'] = 'title';
   return $block;
     
+}
+function ngo_relation_query_random_alter($query) {
+  $query->orderRandom();
 }
 function _ngo_block_cause_list() {
     $output = '';
@@ -183,7 +198,7 @@ function _ngo_block_cause_list() {
 $query->entityCondition('entity_type', 'node')
   ->propertyCondition('status', 1)
   ->propertyCondition('type', array($type))
-  ->addTag('random')
+  ->addTag('random')      
   ->range(0, 5);
 $result = $query->execute();
  
@@ -193,6 +208,7 @@ $result = $query->execute();
  foreach($nodes as $key => $node_obj) {
      $title = $node_obj->title;
     $nid = $node_obj->nid;
+    $cause_path = drupal_lookup_path('alias',"node/". $nid);
     $icon = $node_obj->field_cause_icon[$node_obj->language][0];
     $ngo_count = 0;
     $row = (object)db_query("SELECT count({field_data_field_cause}.entity_id) as ngo_count from {field_data_field_cause} WHERE bundle = :bundle and field_cause_nid = :nid GROUP BY field_cause_nid LIMIT 1", array(":bundle" => 'ngo', ":nid" => $nid))->fetchAssoc();
@@ -200,11 +216,15 @@ $result = $query->execute();
         $ngo_count = $row->ngo_count;
     }
     $output .= '<div class="cause_list">';
-     $output .= '<div class="node_title">' . $title . '</div>';
+     $output .= '<div class="node_icon">';
+     $output .= '<a href="' . $cause_path . '">';
      if(isset($icon['uri'])) {
       
-     $output .= '<div class="node_icon"><img src="' . image_style_url('thumbnail', $icon['uri']) . ' /></div>';
+     $output .= '<img width="60" src="' . image_style_url('thumbnail', $icon['uri']) . '" />';
      }
+     $output .=  t($title);
+     $output .= '</a>';
+     $output .= '</div>';
      $output .= '<div class="node_ngocount">NGO: ' . $ngo_count . '</div>';
      $output .= '</div>';
  }
@@ -212,7 +232,130 @@ $result = $query->execute();
  return $output;
 }
 function _ngo_block_campaign_list() {
+    $output = '';
  $type = 'campaign';   
- $nodes = node_load_multiple(array(), array('type' => $type));
- print_r($nodes);
+ $query = new EntityFieldQuery();
+$query->entityCondition('entity_type', 'node')
+  ->propertyCondition('status', 1)
+  ->propertyCondition('type', array($type))
+  ->addTag('random')      
+  ->range(0, 5);
+$result = $query->execute(); 
+ $nodes = node_load_multiple(array_keys($result['node']));
+  $output .= '<div class="cause_lists">';
+  if (sizeof($nodes) > 0) {
+     foreach($nodes as $key => $node) {
+         $output .= '<div class="campaign_list">';
+          $nid = $node->nid;
+          $title = $node->title;
+          $created = $node->created;
+
+          $body = '';
+          $ngo_array = array();
+          $cause_array = array();
+          $campaign_icon = '';
+          $campaign_bg = '';
+          $campaign_icon_url = '';
+          $campaign_bg_url = '';
+          $campaign_images = array();
+          
+          $ngo_str = '';
+          $cause_str = array();
+
+          $campaign_image_thumb_url = '';
+
+          if ($field_items = field_get_items('node', $node, 'field_description')) {
+            $body = $field_items[0]['value'];
+          }
+          if ($field_items = field_get_items('node', $node, 'field_ngo')) {
+            $ngo_array = $field_items[0];
+          }
+          if ($field_items = field_get_items('node', $node, 'field_campaign_image')) {
+            $campaign_images = $field_items[0];
+          }  
+          if ($field_items = field_get_items('node', $node, 'field_cause')) {
+            $cause_array = $field_items;
+          }
+          if (sizeof($ngo_array) > 0) {
+            $ngo_node = node_load($ngo_array['nid']);
+            if (sizeof($ngo_node) > 0) {
+                $ngo_str .= '<a href="' . drupal_lookup_path('alias',"node/". $ngo_node->nid) . '">' . $ngo_node->title . '</a>';
+            }
+          }
+          
+          if (sizeof($cause_array) > 0) {
+            foreach ($cause_array as $cause_list) {
+                $cause_id = $cause_list['nid'];
+                $cause_node = node_load($cause_id);
+                if ($field_items = field_get_items('node', $cause_node, 'field_cause_icon')) {
+                     $cause_icon = $field_items[0]['uri'];
+                }
+                $cause_icon_url = image_style_url('thumbnail', $cause_icon);
+              $cause_str[] = '<a href="' . drupal_lookup_path('alias',"node/".$cause_node->nid) . '">' . t($cause_node->title) . '</a>';
+            }
+        }
+          if (isset($campaign_images['uri'])) {
+              $campaign_image = $campaign_images['uri'];
+              $campaign_image_thumb_url = image_style_url('thumbnail', $campaign_image);
+              $campaign_image_full_url = file_create_url($campaign_image);
+          }  
+          
+          $output .= '<div><a href="' . drupal_lookup_path('alias',"node/".$nid) . '">';
+          if ($campaign_image_full_url != '') {
+              $output .= '<img src="' . $campaign_image_full_url . '" width="100" />';
+          }
+          $output .= t($title) . '</a></div>';
+          
+          if ($ngo_str != '') {
+              $output .= '<div><b>NGO: </b>' . $ngo_str . '</div>';
+          }
+          if (sizeof($cause_str) > 0) {
+              $output .= '<div><b>Cause: </b>';
+              $output .= implode(", ", $cause_str);
+              $output .= '</div>';
+          }
+          
+          $output .= '</div>';
+     }
+  }
+  $output .= '</div>';
+  return $output;
+}
+function _ngo_block_user_list() {
+ $uids = db_select('users', 'u')
+    ->fields('u', array('uid'))
+    ->condition('u.uid', array(0, 1), 'NOT IN')   
+    ->range(0,5)    // Limit the result set by 1 record only
+    ->orderRandom() // Sort by random     
+    ->execute()
+    ->fetchCol();
+    
+    $users = user_load_multiple($uids);
+$output = '';
+foreach ($users as $account) {
+  $first_name = '';
+  $last_name = '';
+  $city = '';
+  
+  $output .= '<div class="user_list">'; // Cause List Start
+
+  if ($field_items = field_get_items('user', $account, 'field_user_first_name')) {
+    $first_name = $field_items[0]['value'];
+  }
+  if ($field_items = field_get_items('user', $account, 'field_user_last_name')) {
+    $last_name = $field_items[0]['value'];
+  }
+  if ($field_items = field_get_items('user', $account, 'field_state_city')) {
+    $city_id = $field_items[0]['tid'];
+    if ($city_id != '') {
+        $term = taxonomy_term_load($city_id);
+        $city = $term->name;
+    }
+  }
+  $output .= '<div class="user_name">' . $first_name . ' ' . $last_name . '</div>';
+  $output .= '<div class="user_city">' . $city . '</div>';
+  $output .= '</div>';
+  
+}
+return $output;
 }
