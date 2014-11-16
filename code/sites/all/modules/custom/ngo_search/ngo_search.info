@@ -1,0 +1,6 @@
+name = ngo_search
+description = Based on search parameters it searches the NGO`s.
+core = 7.x
+package = NGO Custom
+version = "7.x-1.2"
+project = "ngo_search"
