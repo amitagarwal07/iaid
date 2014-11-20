@@ -95,11 +95,16 @@ function contented7_preprocess_html(&$variables, $hook) {
  * @param $hook
  *   The name of the template being rendered ("page" in this case.)
  */
-/* -- Delete this line if you want to use this function
-function contented7_preprocess_page(&$variables, $hook) {
-  $variables['sample_variable'] = t('Lorem ipsum.');
+
+function contented7_preprocess_page(&$vars, $hook) {
+    $pageType = isset($vars['node']->type) ? $vars['node']->type : '';
+    if($pageType == 'ngo'){
+       $ngoId = $vars['node']->nid;
+       drupal_goto("ngo/details/$ngoId");
+   }
+    
 }
-// */
+
 
 /**
  * Override or insert variables into the node templates.
