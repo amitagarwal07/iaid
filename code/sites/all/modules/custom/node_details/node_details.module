@@ -1,0 +1,127 @@
+<?php
+
+/**
+ * Implementation of hook_menu
+ */
+function node_details_menu(){
+    $items = array();
+    $items['ngo/details/%'] = array(
+        'title' => 'NGO Details Page',
+        'page callback' => 'ngo_details_page',
+        'access callback' => TRUE
+    );
+    return $items;
+}
+
+
+function ngo_details_page(){
+    drupal_add_js(base_path() . libraries_get_path('flexslider') . '/jquery.flexslider.js');  
+    drupal_add_js(base_path() . drupal_get_path('module', 'ngo_search') . '/js/slider.js');  
+    drupal_add_css(libraries_get_path('flexslider') . '/flexslider.css');
+    
+    global $user;
+    $args = arg(2);
+    $ngoData = node_load($args);
+    
+    //print"<pre>";print_r($ngoData);exit;
+    
+    $logo = file_create_url($ngoData->field_ngo_logo['und'][0]['uri']);
+    $desc = $ngoData->field_about['und'][0]['value'];
+
+    $output = '';
+    $output .= "<div>";
+    
+    $output .= "<div style='float:right;'>";
+    $output .= "<img src='$logo' width='100px' height='100px' />";
+    $output .= "</div>";
+    
+    $output .= "<div style='float:left;'>";
+    $output .= $desc;
+    $output .= "</div>";
+    
+    $query = new EntityFieldQuery();
+    $query->entityCondition('entity_type', 'node')
+        ->propertyCondition('status', 1)
+        ->propertyCondition('type', array('ngo_image_gallery'))
+        ->fieldCondition('field_ngo', 'nid', array($args))
+        ->propertyOrderBy('created', 'DESC')
+        ->range(0, 100);
+
+    $nodeResult = $query->execute();
+    if(sizeof($nodeResult) > 0){
+        $nodes = node_load_multiple(array_keys($nodeResult['node']));
+
+        $output .= "<div class='main-slider flexslider'>";
+        $output .= "<ul class='slides' id='individual_slides_$args'> ";
+        foreach ($nodes as $slide) {
+            $gallery = node_show($slide);
+            $sliderImage =  render($gallery);
+            $output .= "<li>
+                             <div class='slide-image' style='width:200px;height:200px;'>
+                                  $sliderImage
+                              </div>
+                        </li>";
+        }
+        $output .= "</ul> ";
+        $output .= "</div>";
+    
+    }
+   
+   /**
+     * campaign list
+     */
+    $forumQuery = new EntityFieldQuery();
+    $forumQuery->entityCondition('entity_type', 'node')
+        ->propertyCondition('status', 1)
+        ->propertyCondition('type', array('forum'))
+        ->fieldCondition('field_ngo', 'nid', array($args))
+        ->propertyOrderBy('created', 'DESC')
+        ->range(0, 100);
+
+    $forumResult = $forumQuery->execute();
+    //print"<pre>";print_r($forumResult);   
+    
+    if(sizeOf($forumResult) > 0){
+        $output .="<div style='border:1px solid red;'>";
+        $forumNodes = node_load_multiple(array_keys($forumResult['node']));
+        foreach($forumNodes as $forum){
+            $forumObject = node_load($forum->nid);
+            $forumDescription = $forumObject->body['und'][0]['value'];
+            $output .="<div style='border:1px solid blue;'>";
+            $output .= $forumDescription;
+            $output .="</div>";
+        }
+        $output .="</div>";
+    }
+    
+    
+    /**
+     * campaign list
+     */
+    $campaignQuery = new EntityFieldQuery();
+    $campaignQuery->entityCondition('entity_type', 'node')
+        ->propertyCondition('status', 1)
+        ->propertyCondition('type', array('campaign'))
+        ->fieldCondition('field_ngo', 'nid', array($args))
+        ->propertyOrderBy('created', 'DESC')
+        ->range(0, 100);
+
+    $campaignResult = $campaignQuery->execute();
+    //print"<pre>";print_r($campaignResult);
+    
+    if(sizeOf($campaignResult) > 0){
+        $output .="<div style='border:2px solid black;'>";
+        $campaignNodes = node_load_multiple(array_keys($campaignResult['node']));
+        foreach($campaignNodes as $campaign){
+            $campaignObject = node_load($campaign->nid);
+            $campaignDescription = $campaignObject->field_description['und'][0]['value'];
+            $output .="<div style='border:2px solid navy;'>";
+            $output .= $campaignDescription;
+            $output .="</div>";
+        }
+        $output .="</div>";
+    }
+
+    $output .= "</div>";
+    return $output;
+}

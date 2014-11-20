@@ -1,0 +1,6 @@
+name = node_details
+description = Based on node it shows the details of node/content in the new format and new UI.
+core = 7.x
+package = NGO Custom
+version = "7.x-1.2"
+project = "node_details"
