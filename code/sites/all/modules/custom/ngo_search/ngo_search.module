@@ -44,18 +44,22 @@ function ngo_search_block_view($delta = '') {
  * This function has been called from 'hook_block_view'
  */
 function ngo_search_form($form, &$form_state) {
+    
+$city = isset($_REQUEST['city']) ? $_REQUEST['city'] : '';
+$cause = isset($_REQUEST['cause']) ? $_REQUEST['cause'] : ''; 
 $form = array();
 $form['city'] = array(
     '#type' => 'select',
     '#title' => t('City'),
     '#options' => allCityNames(),
+    '#default_value' => $city
 
  );
 $form['cause'] = array(
     '#type' => 'select',
     '#title' => t('Cause'),
     '#options' => allCauses(),
-
+    '#default_value' => $cause
  );
 
 $ratings = array('1'=>'1','2'=>'2','3'=>'3','4'=>'4','5'=>'5');
