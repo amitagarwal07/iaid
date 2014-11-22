@@ -4,3 +4,4 @@ core = 7.x
 package = NGO Custom
 version = "7.x-1.2"
 project = "node_details"
+
