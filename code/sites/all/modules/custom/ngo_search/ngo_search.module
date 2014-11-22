@@ -213,5 +213,4 @@ function ngosearch_form_searched_results(){
     
     //print"<pre>";print_r($ngoData1);exit;
     return $output;
-    
 }
