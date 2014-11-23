@@ -109,8 +109,8 @@ $output .= '<script>';
   $output .= '
   jQuery("#campaign_image_slideshow").flexslider({
       animation: "slide",
-      animationLoop: true,
-    itemWidth: 225,
+      animationLoop: false,
+    itemWidth: 230,
     itemMargin: 5 
   });';
 $output .= '</script>';

@@ -98,6 +98,10 @@ function contented7_preprocess_html(&$variables, $hook) {
 
 function contented7_preprocess_page(&$vars, $hook) {
     $pageType = isset($vars['node']->type) ? $vars['node']->type : '';
+    if (isset($vars['node']->type)) {
+        // This code looks for any page--custom_content_type.tpl.php page
+         $vars['theme_hook_suggestions'][] = 'page__' . $vars['node']->type;
+    }
     if($pageType == 'ngo'){
        $ngoId = $vars['node']->nid;
        drupal_goto("ngo/details/$ngoId");
@@ -186,16 +190,5 @@ function contented7_preprocess_region(&$variables, $hook) {
     $variables['theme_hook_suggestions'][] = 'region__footer';
     // Allow a region-specific template to override Zen's region--footer.
     $variables['theme_hook_suggestions'][] = 'region__' . $variables['region'];
-  }
-}
-/**
-* Add / modify variables before the page renders.
-*/
-function contented7_preprocess_page(&$vars) {
-// custom content type page template
-  // Renders a new page template to the list of templates used if it exists
-  if (isset($vars['node']->type)) {
-// This code looks for any page--custom_content_type.tpl.php page
-    $vars['theme_hook_suggestions'][] = 'page__' . $vars['node']->type;
   }
 }

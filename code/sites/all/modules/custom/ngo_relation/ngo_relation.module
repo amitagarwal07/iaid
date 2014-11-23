@@ -152,6 +152,10 @@ function ngo_relation_block_info() {
     //many other properties can be added here in this way.
     //for all options, http://api.drupal.org/api/drupal/modules--block--block.api.php/function/hook_block_info/7
   );  
+  $blocks['home_slider'] = array(
+    'info' => t('Home Slider'),
+    'cache' => DRUPAL_NO_CACHE, //see link below for what this does.
+  );  
   return $blocks;
 }
 function ngo_relation_block_view($delta) {
@@ -162,8 +166,87 @@ function ngo_relation_block_view($delta) {
       //use helper functions to set the blocks. Cleaner.
       $block = _ngo_people_cause_campaign_list();
       break;
+    
+      case 'home_slider':
+      //use helper functions to set the blocks. Cleaner.
+      $block = _home_slider();
+      break;
   }
   return $block;
+}
+function _home_slider() {
+  $content = '';  
+  $content .= _home_slider_content();  
+  $block['content'] = $content;
+  $block['subject'] = '';
+  return $block;
+    
+}
+function _home_slider_content() {
+    //return '';
+    drupal_add_js(base_path() . libraries_get_path('flexslider') . '/jquery.flexslider.js');  
+  drupal_add_js(base_path() . drupal_get_path('module', 'ngo_search') . '/js/slider.js');  
+  drupal_add_css(libraries_get_path('flexslider') . '/flexslider.css');
+    $output = '';
+    $query = db_select("node", "n")->distinct();
+    $query->join('field_data_field_banner_image', 'fni', 'fni.entity_id = n.nid');
+    $query->fields('n', array('nid', 'title'))
+           ->condition("type", "ngo")
+           ->extend('PagerDefault')->limit(5);
+    $result = $query->execute();
+    $rows = array();
+    global $base_url;
+    
+    $output .= "<div class='parent_content'>";
+    $output .= "<div id='home-slider' class='main-slider flexslider'>";
+    $output .= "<ul class='slides' id='ngo_slides'>";    
+    while($data = $result->fetchObject()) {      
+        
+      $logo = '';
+      $body = '';
+      $logo_url = '';
+      $banner_image_url = '';
+        
+      $ngoData = node_load($data->nid);
+      if ($field_items = field_get_items('node', $ngoData, 'field_about')) {
+        $body = $field_items[0]['value'];
+      }
+      if ($field_items = field_get_items('node', $ngoData, 'field_ngo_logo')) {
+        $logo_obj = $field_items[0]['uri'];
+        $logo = file_create_url($logo_obj);
+      }
+      if ($field_items = field_get_items('node', $ngoData, 'field_banner_image')) {
+        $banner_image = $field_items[0]['uri'];
+        $banner_image_url = file_create_url($banner_image);
+      }
+      if ($banner_image_url != '') {
+          $logo = file_create_url($ngoData->field_ngo_logo['und'][0]['uri']);
+          $desc = $ngoData->field_about['und'][0]['value'];
+              $output .= '<li>
+                                    <div><img src="' . $banner_image_url . '" /></div>';
+
+          $output .= "<div class='parent_content'>" ;
+          $output .= t($body);
+          $output .= "</div>
+                          </li>";
+      }
+    }
+    $output .= "</ul> ";
+    $output .= "</div>";      
+    $output .= "</div>";     
+    
+    $output .= '<script>';
+
+  $output .= '
+  jQuery("#home-slider").flexslider({
+      animation: "slide",
+      slideshow: true, //Boolean: Animate slider automatically
+    slideshowSpeed: 2000, //Integer: Set the speed of the slideshow cycling, in milliseconds
+    animationSpeed: 1000, 
+  });';
+$output .= '</script>';
+    
+    return $output;
 }
 function _ngo_people_cause_campaign_list() {
   $content = '';  
@@ -258,7 +341,7 @@ $result = $query->execute();
           $campaign_icon_url = '';
           $campaign_bg_url = '';
           $campaign_images = array();
-          
+          $campaign_image_full_url = '';
           $ngo_str = '';
           $cause_str = array();
 

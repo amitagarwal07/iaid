@@ -150,19 +150,23 @@ function ngosearch_form_searched_results(){
     global $base_url;
     while($data = $result->fetchObject()) {
       
+      $ngoNid = $data->nid;
       $ngoData = node_load($data->nid);
       $logo = file_create_url($ngoData->field_ngo_logo['und'][0]['uri']);
       $desc = $ngoData->field_about['und'][0]['value'];
+      $title = $data->title;
+      
+      $ngoPath = drupal_lookup_path('alias',"node/".$ngoNid);
       
       $wrapper = '';
-      $wrapper .= "<div class='parent_content' style='width:100%;border:2px solid red;height:400px;'>";
+      $wrapper .= "<div class='parent_content'>";
       
-      $wrapper .= "<div class='parent_content' style='width:15%;border:2px solid red;overflow:hidden;'>";
+      $wrapper .= "<div class='parent_content' style='width:15%; float: left;'>";
       $wrapper .= "<img src='$logo' width='100px' height='100px'>";
       $wrapper .= "</div>";
 
       
-      $query = new EntityFieldQuery();
+      /* $query = new EntityFieldQuery();
       $query->entityCondition('entity_type', 'node')
           ->propertyCondition('status', 1)
           ->propertyCondition('type', array('ngo_image_gallery'))
@@ -188,9 +192,18 @@ function ngosearch_form_searched_results(){
       }
       $wrapper .= "</ul> ";
       $wrapper .= "</div>";
-       }
+       } */
+      
+      // Node Title
+      $wrapper .= "<div class='parent_content' style='width:80%; float: left;'>";
+      $wrapper .= "<div class='parent_content'>" ;
+      $wrapper .= '<a href="' . base_path() . $ngoPath . '">' . $title . '</a>';
+      $wrapper .= "</div>";
+      
       $wrapper .= "<div class='parent_content'>" ;
       $wrapper .= $desc;
+      $wrapper .= "</div>";
+      
       $wrapper .= "</div>";
       
       $wrapper .= "</div>";
